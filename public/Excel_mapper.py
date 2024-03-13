@@ -14,12 +14,14 @@ def main():
         app = xw.App(visible=False)
         app.display_alerts = False
         app.screen_updating = False
+        Job_Name = None
         cell_mapping_for_Laufzettel = {}
         cell_mapping_for_Urwerte = {}
         cell_mapping_for_Prufplan = {}
         cell_mapping_for_Schliffbilder = {}
         cell_mapping_for_SchliffbilderViaHolefilling = {}
         cell_mapping_for_MasterData = {}
+        cell_mapping_for_ManualData = {}
 
         def populate_cell_mappings():
             # print('Args', sys.argv)
@@ -30,7 +32,7 @@ def main():
                 Laufzettel_sheet = wb1.sheets["Laufzettel"]
                 for row_number, cell in enumerate(Laufzettel_sheet.range('A:A'), start=2):
                     key = Laufzettel_sheet.range(f"A{row_number}").value
-                    if row_number > 40:
+                    if row_number > 50:
                         break
                     if key:
                         cell_mapping_for_Laufzettel[key] = (Laufzettel_sheet.range(f"B{row_number}").value,Laufzettel_sheet.range(f"C{row_number}").value)
@@ -42,7 +44,7 @@ def main():
                 Urwerte_sheet = wb1.sheets["Urwerte"]
                 for row_number, cell in enumerate(Urwerte_sheet.range('A:A'), start=2):
                     key = Urwerte_sheet.range(f"A{row_number}").value
-                    if row_number > 40:
+                    if row_number > 50:
                         break
                     # print(cell.value,Urwerte_sheet.range(f"B{row_number}").value,Urwerte_sheet.range(f"C{row_number}").value)
                     if key:
@@ -55,7 +57,7 @@ def main():
                 Prufplan_sheet = wb1.sheets["Prufplan"]
                 for row_number, cell in enumerate(Prufplan_sheet.range('A:A'), start=2):
                     key = Prufplan_sheet.range(f"A{row_number}").value
-                    if row_number > 40:
+                    if row_number > 50:
                         break
                     if key:
                         cell_mapping_for_Prufplan[key] = (Prufplan_sheet.range(f"B{row_number}").value,Prufplan_sheet.range(f"C{row_number}").value)
@@ -67,7 +69,7 @@ def main():
                 Schliffbilder_sheet = wb1.sheets["Schliffbilder"]
                 for row_number, cell in enumerate(Schliffbilder_sheet.range('A:A'), start=2):
                     key = Schliffbilder_sheet.range(f"A{row_number}").value
-                    if row_number > 40:
+                    if row_number > 50:
                         break
                     if key:
                         cell_mapping_for_Schliffbilder[key] = (Schliffbilder_sheet.range(f"B{row_number}").value,Schliffbilder_sheet.range(f"C{row_number}").value)
@@ -79,7 +81,7 @@ def main():
                 SchliffbilderViaHolefilling_sheet = wb1.sheets["Schliffbilder Via Hole filling"]
                 for row_number, cell in enumerate(SchliffbilderViaHolefilling_sheet.range('A:A'), start=2):
                     key = SchliffbilderViaHolefilling_sheet.range(f"A{row_number}").value
-                    if row_number > 40:
+                    if row_number > 50:
                         break
                     if key:
                         cell_mapping_for_SchliffbilderViaHolefilling[key] = (SchliffbilderViaHolefilling_sheet.range(f"B{row_number}").value,SchliffbilderViaHolefilling_sheet.range(f"C{row_number}").value)
@@ -88,16 +90,28 @@ def main():
                 print(f"An error occurred while processing the 'Schliffbilder Via Hole filling' sheet: {e}")   
 
             try:
-                MasterData_sheet = wb1.sheets["Master_data"]
+                MasterData_sheet = wb1.sheets["MasterData"]
                 for row_number, cell in enumerate(MasterData_sheet.range('A:A'), start=2):
                     key = MasterData_sheet.range(f"A{row_number}").value
-                    if row_number > 40:
+                    if row_number > 80:
                         break
                     if key:
                         cell_mapping_for_MasterData[key] = (MasterData_sheet.range(f"B{row_number}").value,MasterData_sheet.range(f"C{row_number}").value,MasterData_sheet.range(f"D{row_number}").value)
                 # print(cell_mapping_for_MasterData)
             except Exception as e:
-                print(f"An error occurred while processing the 'Master Data' sheet: {e}")    
+                print(f"An error occurred while processing the 'Master Data' sheet: {e}")  
+
+            try:
+                ManualData_sheet = wb1.sheets["ManualData"]
+                for row_number, cell in enumerate(ManualData_sheet.range('A:A'), start=2):
+                    key = ManualData_sheet.range(f"A{row_number}").value
+                    if row_number > 80:
+                        break
+                    if key:
+                        cell_mapping_for_ManualData[key] = (ManualData_sheet.range(f"B{row_number}").value,ManualData_sheet.range(f"C{row_number}").value,ManualData_sheet.range(f"D{row_number}").value)
+                # print(cell_mapping_for_ManualData)
+            except Exception as e:
+                print(f"An error occurred while processing the 'Manual Data' sheet: {e}")  
             wb1.close()
         populate_cell_mappings() 
 
@@ -115,24 +129,9 @@ def main():
         [app, wb1, wb2] = open_open_primary_secondary_excels(sys.argv[1],sys.argv[2])
 
 
-        def save_and_close_excel(app, wb1, wb2, file1):
-            input_file_name = os.path.splitext(os.path.basename(file1))[0]
-            # Specify the document directory
-            document_dir = os.path.expanduser("~\\Documents")
-
-            # Create the directory if it doesn't exist
-            excel_mapper_dir = os.path.join(document_dir, "ExcelMapper")
-            if not os.path.exists(excel_mapper_dir):
-                os.makedirs(excel_mapper_dir)
-
-            #Clear the fiels inside the Excel mapper folder
-            for filename in os.listdir(excel_mapper_dir):
-                file_path = os.path.join(excel_mapper_dir, filename)
-                if os.path.isfile(file_path):
-                    os.remove(file_path)
-
+        def save_and_close_excel(app, wb1, wb2, new_filename):
             # Build the full path for the output file in the ExcelMapper directory
-            output_file_path = os.path.join(excel_mapper_dir, f"{input_file_name}_updated.xlsx")
+            output_file_path = os.path.join(sys.argv[4], sys.argv[5])
 
             # Save the modified first Excel file to the document directory
             wb1.save(output_file_path)
@@ -158,7 +157,6 @@ def main():
                     ws2 = sheet
                     break
             return [ws1, ws2]
-        
 
         def cell_mapping_Laufzettel(file1, file2):
             try:
@@ -566,50 +564,64 @@ def main():
 
         def cell_mapping_MasterData(file1, file2): 
             try:
-                [ws1, ws2] = open_sheet_with_name(file1, 'Master_Data')
+                [ws1, ws2] = open_sheet_with_name(file1, 'MasterData')
                 for ws1 in wb1.sheets:
                     for cell_ref, (source_cell, prefix, sheet_name) in cell_mapping_for_MasterData.items():
                         value = ws2.range(source_cell).value
-                        
-                        if isinstance (value, str) and (value.lower() == 'white' or value.lower() == 'green' or value.lower() == 'yellow'):
-                            ws1_range = ws1.range(cell_ref)
-                            data_validation = ws1_range.api.Validation
-                            if data_validation:
-                                # print(f"Data validation is present in cell: {cell_ref}")
-                                # print(f"data_validation Type: {data_validation.Type}")
-                                try:
-                                    if data_validation.Type == 3:  
-                                        formula_text = data_validation.Formula1
-                                        formula_range = ws1.range(formula_text)  
-                                        if value.lower() == 'white':
-                                            cell_value = formula_range[0].value
-                                        elif value.lower() == 'yellow':
-                                            cell_value = formula_range[1].value
-                                        elif value.lower() == 'green':
-                                            cell_value = formula_range[2].value
-                                        ws1.range(cell_ref).value = cell_value 
-                                except Exception as e:
-                                    pass
-                        # if value is not None:
-                        elif value or value is None:
-                            ws1_range = ws1.range(cell_ref)
-                            data_validation = ws1_range.api.Validation
-                            if data_validation:
-                                try:
-                                    if data_validation.Type == 3:  
-                                        formula_text = data_validation.Formula1
-                                        formula_range = ws1.range(formula_text)  
-                                        if value is not None:
-                                            cell_value = formula_range[0].value
-                                        else:
-                                            cell_value = formula_range[1].value 
-                                        ws1.range(cell_ref).value = cell_value
-                                except:
-                                    ws1.range(cell_ref).value = value
-                        else:
-                            ws1.range(cell_ref).value = value
+                        if ws1.name == sheet_name:
+                            if isinstance (value, str) and (value.lower() == 'white' or value.lower() == 'green' or value.lower() == 'yellow'):
+                                ws1_range = ws1.range(cell_ref)
+                                data_validation = ws1_range.api.Validation
+                                if data_validation:
+                                    # print(f"Data validation is present in cell: {cell_ref}")
+                                    # print(f"data_validation Type: {data_validation.Type}")
+                                    try:
+                                        if data_validation.Type == 3:  
+                                            formula_text = data_validation.Formula1
+                                            formula_range = ws1.range(formula_text)  
+                                            if value.lower() == 'white':
+                                                cell_value = formula_range[0].value
+                                            elif value.lower() == 'yellow':
+                                                cell_value = formula_range[1].value
+                                            elif value.lower() == 'green':
+                                                cell_value = formula_range[2].value
+                                            ws1.range(cell_ref).value = cell_value 
+                                    except Exception as e:
+                                        pass
+                            # if value is not None:
+                            elif value or value is None:
+                                ws1_range = ws1.range(cell_ref)
+                                data_validation = ws1_range.api.Validation
+                                if data_validation:
+                                    try:
+                                        if data_validation.Type == 3:  
+                                            formula_text = data_validation.Formula1
+                                            formula_range = ws1.range(formula_text)  
+                                            if value is not None:
+                                                cell_value = formula_range[0].value
+                                            else:
+                                                cell_value = formula_range[1].value 
+                                            ws1.range(cell_ref).value = cell_value
+                                    except:
+                                        ws1.range(cell_ref).value = value
+                            else:
+                                ws1.range(cell_ref).value = value
             except Exception as e:
                 print(f"An error occured while processing the 'master data' sheet :{e}")
+
+        def cell_mapping_ManualData(file1, file2):
+            try:
+                [ws1, ws2] = open_sheet_with_name(file1, 'ManualData')
+                for ws1 in wb1.sheets:
+                    # print(f"Processing sheet: {ws1.name}")
+                    # Update the cells using the mappings
+                    for cell_ref, (source_cell, prefix, sheet_name) in cell_mapping_for_ManualData.items():
+                        value = ws2.range(source_cell).value
+                        if ws1.name == sheet_name:
+                            # print(f"Updating cell {cell_ref} with value {value}")
+                            ws1.range(cell_ref).value = value
+            except Exception as e:
+                print(f"An error occured while processing the 'manual data' sheet :{e}")
 
         # # Call the functions with the file paths 
         cell_mapping_Laufzettel(sys.argv[1],sys.argv[2])                    
@@ -618,11 +630,12 @@ def main():
         cell_mapping_Lagenaufbau(sys.argv[1],sys.argv[2]) 
         cell_mapping_Schliffbilder(sys.argv[1],sys.argv[2])  
         cell_mapping_SchliffbilderViaHolefilling(sys.argv[1],sys.argv[2])                    
-        cell_mapping_MasterData(sys.argv[1],sys.argv[2])                  
+        cell_mapping_MasterData(sys.argv[1],sys.argv[2]) 
+        cell_mapping_ManualData(sys.argv[1],sys.argv[2])                  
 
 
         # save after updation 
-        save_and_close_excel(app, wb1, wb2, sys.argv[1])
+        save_and_close_excel(app, wb1, wb2, new_filename)
         print("DONE", flush=True)
         sys.stdout.flush()
         
@@ -633,4 +646,6 @@ def main():
     #     app.quit()    
 
 if __name__ == "__main__":
+    folder_path = sys.argv[4]
+    new_filename = sys.argv[5]
     main()

@@ -1,310 +1,145 @@
-import React, { useEffect, useState } from 'react';
-import './App.css';
+import React, { useEffect, useState } from "react";
+import "./App.css";
 
-const { ipcRenderer } = window.require('electron');
-
-const UPLOADER_MAP = {
-  TEMPLATE: 'template',
-  EMPB_DATA: 'empb-data',
-  CELL_MAPPINGS: 'cell-mappings',
-  DIMENSION_SHEET: 'dimension-sheet'
-};
+const { ipcRenderer } = window.require("electron");
 
 function App() {
-  const [templatePath, setTemplatepath] = useState(null)
-  const [empbDataPath, setEmpbDatapath] = useState(null)
-  const [cellMappingsPath, setCellMappingspath] = useState(null)
-  const [dimensionSheetPath, setDimensionSheetpath] = useState(null)
-  const [runStatus, setRunStatus] = useState(0)
-  const [showDimension, setShowDimension] = useState(false);
+  const [selectedFolder, setSelectedFolder] = useState("");
+  const [isEmpbDataChecked, setIsEmpbDataChecked] = useState(false);
+  const [isDimensionChecked, setIsDimensionChecked] = useState(false);
+  const [runStatus, setRunStatus] = useState(0);
 
-  const [templateFileList, setTemplateFileList] = useState([]);
-  const [dimensionFileList, setDimensionFileList] = useState([]);
-  const [empbDataFileList, setEmpbDataFileList] = useState([]);
-  const [cellMappingsFileList, setCellMappingsFileList] = useState([]);
-  
-  
-  const getDropdownValues = (subfolderName, setFileList) => {
-    if (!subfolderName) {
-      console.error('subfolderName is undefined or null');
-      return;
-    }
+  const handleBrowseClick = () => {
+    ipcRenderer.send("select-folder");
+    console.log("Folder selection request sent to main process.");
+  };
 
-    // console.log('Fetching files from subfolder:', subfolderName);  
+  const handleEmpbCheckboxChange = (e) => {
+    setIsEmpbDataChecked(e.target.checked);
+  };
 
-    ipcRenderer
-        .invoke('fetch-files-from-subfolder', subfolderName)
-        .then((files) => {
-            console.log(`Fetched ${subfolderName} files:`, files);
-            // Verify that 'files' contains valid file paths
-           // console.log('Files array:', files);
-            if (files.length > 0) {
-              // Set the file list for the dropdown based on fileType
-              setFileList(files);
-            }
-        })
-        .catch((error) => {
-            console.error(`Error fetching files from ${subfolderName} folder:`, error);
-        });
+  const handleDimensionCheckboxChange = (e) => {
+    setIsDimensionChecked(e.target.checked);
   };
 
   const handleRunPythonScript = () => {
-    console.log(templatePath)
+    if (!selectedFolder) {
+      window.alert("Please select a folder before running the script.");
+      return;
+    }
 
-    // Check if the "Dimension" option is selected
-    if (showDimension) {
-      if (!templatePath) {
-        alert('Please select a Template before running the script.');
-        return; // Exit the function if the required folder is not selected
-      }
-      if (!dimensionSheetPath) {
-        alert('Please select a Dimension sheet before running the script.');
-        return; // Exit the function if the required folder is not selected
-      }
-      // Run the dimension script
-      ipcRenderer
-        .invoke('run', JSON.stringify([templatePath, dimensionSheetPath]))
-        .then((scriptOutput) => {
-          console.log('Python Output:', scriptOutput);
-        })
-        .catch((error) => {
-          console.error(error);
-        });
-    } else {
-      // Run the default script
-      if (!templatePath) {
-        alert('Please select a Template before running the script.');
-        return; // Exit the function if the required folder is not selected
-      }
-      if (!empbDataPath) {
-        alert('Please select a empb Data before running the script.');
-        return; // Exit the function if the required folder is not selected
-      }
-      if (!cellMappingsPath) {
-        alert('Please select a cell Mappings before running the script.');
-        return; // Exit the function if the required folder is not selected
-      }
+    if (!isDimensionChecked && !isEmpbDataChecked) {
+      window.alert("Please select at least one checkbox.");
+      return;
+    }
 
-      ipcRenderer
-        .invoke('run', JSON.stringify([templatePath, empbDataPath, cellMappingsPath, null]))
-        .then((scriptOutput) => {
-          console.log('Python Output:', scriptOutput);
-        })
-        .catch((error) => {
-          console.error(error);
-        });
-     }
-  };
-  
-  // Define a debounce function
-  const debounce = (func, delay) => {
-    let timeout;
-    return function (...args) {
-      clearTimeout(timeout);
-      timeout = setTimeout(() => {
-        func(...args);
-      }, delay);
-    };
-  };
-  
-  const debouncedHandleUploadButton = debounce((type) => {
-    ipcRenderer.invoke('save-files', type).then((result) => {
-      console.log(result);
-    });
-  }, 500); 
-
-  const handleOpenOutputFile = () => {
-      ipcRenderer.invoke('open-file-explorer');
+    ipcRenderer
+      .invoke("run", isDimensionChecked, isEmpbDataChecked)
+      .then((scriptOutput) => {
+        console.log("Python Output:", scriptOutput);
+      })
+      .catch((error) => {
+        console.error(error);
+      });
   };
 
   useEffect(() => {
-    ipcRenderer.on('file-saved', function (evt, message) {
-      console.log(message);
-      const { path, type } = message
-      if (type === UPLOADER_MAP.TEMPLATE) {
-        setTemplatepath(path)
-      } else if (type === UPLOADER_MAP.EMPB_DATA) {
-        setEmpbDatapath(path)
-      } else if (type === UPLOADER_MAP.CELL_MAPPINGS) {
-        setCellMappingspath(path)
-      } else if (type === UPLOADER_MAP.DIMENSION_SHEET) {
-        setDimensionSheetpath(path)
+    ipcRenderer.on(
+      "selected-folder",
+      (event, folderPath, folderNameToSearch) => {
+        if (folderPath) {
+          setSelectedFolder(folderPath);
+          console.log("Selected folder:", folderPath);
+        }
+        if (folderNameToSearch) {
+          console.log("Folder name to search:", folderNameToSearch);
+        }
+      }
+    );
+
+    ipcRenderer.on("selected-file", (event, fileType, filePath) => {
+      if (fileType === "file1") {
+        // Handle file1
+        console.log("Selected file1:", filePath);
+      } else if (fileType === "file2") {
+        // Handle file2
+        console.log("Selected file2:", filePath);
+      } else if (fileType === "file3") {
+        // Handle file3
+        console.log("Selected file3:", filePath);
+      } else if (fileType === "file4") {
+        // Handle file4
+        console.log("Selected file4:", filePath);
       }
     });
 
-    ipcRenderer.on('run-status', function (evt, message) {
+    ipcRenderer.on("run-status", function (evt, message) {
       console.log(message);
-      if(message === 1){
-        setRunStatus(1)
-        alert('Run successful');
-      }else if(message === 2){
-        setRunStatus(2)
-      }else if(message === -1){
-        setRunStatus(-1)
-        alert('Something went wrong!');
-      }else{
-        setRunStatus(0)
+      if (message === 1) {
+        setRunStatus(1);
+        alert("Run successful");
+      } else if (message === 2) {
+        setRunStatus(2);
+      } else if (message === -1) {
+        setRunStatus(-1);
+        alert("Something went wrong!");
+      } else {
+        setRunStatus(0);
       }
     });
-    
-    getDropdownValues(UPLOADER_MAP.TEMPLATE, setTemplateFileList);
-    getDropdownValues(UPLOADER_MAP.EMPB_DATA, setEmpbDataFileList);
-    getDropdownValues(UPLOADER_MAP.CELL_MAPPINGS, setCellMappingsFileList);
-    getDropdownValues(UPLOADER_MAP.DIMENSION_SHEET, setDimensionFileList);
-    
+
+    // ipcRenderer.on('script-error', (event, error) => {
+    //   console.error('Script error:', error);
+    //   alert(`${error}`);
+    // });
+
+    // Clean up the event listener when the component unmounts
     return () => {
-      ipcRenderer.removeAllListeners('file-saved');
-      ipcRenderer.removeAllListeners('run-status')
+      ipcRenderer.removeAllListeners("selected-folder");
+      ipcRenderer.removeAllListeners("selected-file");
+      // ipcRenderer.removeAllListeners('script-error');
     };
   }, []);
-  
-  const isRunning = runStatus === 2
+
+  const isRunning = runStatus === 2;
   return (
     <div className="App">
-      <div className='header'>
-        Excel Mapper
-        {/* <div className='open-output-area'> */}
-        <span className='open-output-action' onClick={handleOpenOutputFile}>Open Output File</span>
-      {/* </div> */}
-      </div>
-      {/* Radio button to toggle "Template" and "Dimension" */}
-      <div className='toggle-dimension'>
+      <div className="header"> Excel Mapper </div>
+      <div className="job-folder-input">
+        <div className="upload-label">Select Job Folder :</div>
         <input
-          type="radio"
-          name="upload-type"
-          value="Default"
-          checked={!showDimension}
-          onClick={() => setShowDimension(false)}
+          type="text"
+          value={selectedFolder.split(/[\\/]/).pop()}
+          readOnly
         />
-        <div className='upload-label'>Default</div>
-      
+        <button onClick={handleBrowseClick}>Browse</button>
+      </div>
+
+      <div className="checkbox">
         <input
-          type="radio"
-          name="upload-type"
-          value="showDimension"
-          checked={showDimension}
-          onClick={() => setShowDimension(true)}
+          type="checkbox"
+          checked={isEmpbDataChecked}
+          onChange={handleEmpbCheckboxChange}
         />
-        <div className='upload-label'>Dimension</div>
+        <div className="upload-label">EMPB DATA</div>
       </div>
-      <div className='upload-area'>
-        <div className='upload-sect'>
-          <div className='uploader-label'>Template</div>
-          <button
-            className="upload-btn"
-            onClick={() => debouncedHandleUploadButton(UPLOADER_MAP.TEMPLATE)}
-          >
-            {templatePath ? 'Uploaded' : 'Add file'}
-          </button>
-          <div className="divider">OR</div>
-        <select
-            className="dropdown-btn"
-            onChange={(e) => {
-              setTemplatepath(e.target.value);
-              // const selectedValue = e.target.value; 
-              // setTemplatepath(selectedValue); 
-            }}
-              value={templatePath || ''}
-          >
-            <option value="">Select a Template</option>
-            {templateFileList.map((filePath) => (
-              <option key={filePath} value={filePath} className="dropdown-option" >
-                {filePath.split(/[\\/]/).pop()}
-                {/* {filePath.split('\\').pop()} */}
-              </option>
-            ))}
-          </select>
-        </div>
-        {/* Conditionally render "Empb Data" and "Cell Mappings" based on state */}
-        {showDimension ? (
-          <div className='upload-sect'>
-            <div className='uploader-label'>Dimension</div>
-            <button 
-              className="upload-btn" 
-              onClick={() => debouncedHandleUploadButton(UPLOADER_MAP.DIMENSION_SHEET)}
-            >
-              {dimensionSheetPath ? 'Uploaded' : 'Add file'}
-            </button>
-            <div className="divider">OR</div>
-            <select
-              className="dropdown-btn"
-              onChange={(e)=> {
-                setDimensionSheetpath(e.target.value);
-              }}
-              value={dimensionSheetPath  || ''}
-            >
-               <option value="">Select a Dimension</option>
-               {dimensionFileList.map((filePath) => (
-                   <option key={filePath} value={filePath} className="dropdown-option">
-                       {filePath.split(/[\\/]/).pop()}
-                   </option>
-               ))}
-              </select>
-          </div>
-        ) : (
-          <>
-            <div className='upload-sect'>
-              <div className='uploader-label'>Empb Data</div>
-              <button 
-                className="upload-btn"
-                onClick={() =>  debouncedHandleUploadButton(UPLOADER_MAP.EMPB_DATA)}
-              >
-                  {empbDataPath ? 'Uploaded' : 'Add file'}
-                </button>
-                <div className="divider">OR</div>
-                <select
-                  className="dropdown-btn"
-                  onChange={(e)=> {
-                    setEmpbDatapath(e.target.value); 
-                  }}
-                  value={empbDataPath  || ''}
-                >
-                  <option value="">Select a Empb data </option>
-                  {empbDataFileList.map((filePath) => (
-                      <option key={filePath} value={filePath} className="dropdown-option">
-                          {filePath.split(/[\\/]/).pop()}
-                      </option>
-                  ))}
-              </select>
-            </div>
-            <div className='upload-sect'>
-              <div className='uploader-label'>Cell Mappings</div>
-              <button 
-                className="upload-btn" onClick={() => 
-                debouncedHandleUploadButton(UPLOADER_MAP.CELL_MAPPINGS)}
-              >
-                {cellMappingsPath ? 'Uploaded' : 'Add file'}
-              </button>
-              <div className="divider">OR</div>
-              <select
-                className="dropdown-btn"
-                onChange={(e)=> {
-                  setCellMappingspath(e.target.value); 
-                }}
-                value={cellMappingsPath  || ''}
-              >
-                  <option value="">Select a Cell mapping </option>
-                  {cellMappingsFileList.map((filePath) => (
-                      <option key={filePath} value={filePath} className="dropdown-option">
-                          {filePath.split(/[\\/]/).pop()}
-                      </option>
-                  ))}
-              </select>
-            </div>
-          </>
-        )}
+      <div className="checkbox">
+        <input
+          type="checkbox"
+          checked={isDimensionChecked}
+          onChange={handleDimensionCheckboxChange}
+        />
+        <div className="upload-label">DIMENSION</div>
       </div>
-      
-      {/* {
-        runStatus === 1 && <div>Run successful</div>
-      }
-      {
-        runStatus === -1 && <div>Something went wrong!</div>
-      } */}
-      <div className='footer-actions'>
-        <button disabled={isRunning} className={isRunning?'running-action':'run-action'} onClick={() => handleRunPythonScript()}>{isRunning ?'Running': 'Run'}</button>
+      <div className="footer-actions">
+        <button
+          disabled={isRunning}
+          className={isRunning ? "running-action" : "run-action"}
+          onClick={() => handleRunPythonScript()}
+        >
+          {isRunning ? "Running" : "Run"}
+        </button>
       </div>
-      {/* <pre>{outputFilePath}</pre> */}
     </div>
   );
 }

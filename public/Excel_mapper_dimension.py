@@ -18,24 +18,10 @@ def main():
 
         [app, wb1, wb2] = open_open_primary_secondary_excels(sys.argv[1],sys.argv[2])
 
-        def save_and_close_excel(app, wb1, wb2, file1): 
-            input_file_name = os.path.splitext(os.path.basename(file1))[0]   
-            # Specify the document directory
-            document_dir = os.path.expanduser("~\\Documents")
-
-            # Create the directory if it doesn't exist
-            excel_mapper_dir = os.path.join(document_dir, "ExcelMapper")
-            if not os.path.exists(excel_mapper_dir):
-                os.makedirs(excel_mapper_dir)
-
-            #Clear the fiels inside the Excel mapper folder
-            for filename in os.listdir(excel_mapper_dir):
-                file_path = os.path.join(excel_mapper_dir, filename)
-                if os.path.isfile(file_path):
-                    os.remove(file_path)
+        def save_and_close_excel(app, wb1, wb2, new_filename):  
 
             # Build the full path for the output file in the ExcelMapper directory
-            output_file_path = os.path.join(excel_mapper_dir, f"{input_file_name}.xlsx")
+            output_file_path = os.path.join(sys.argv[3], sys.argv[4])
 
             # Save the modified first Excel file to the document directory
             wb1.save(output_file_path)
@@ -196,7 +182,7 @@ def main():
                             ws1.api.Copy(After=ws1.api)
                         ws1_current = ws1.book.sheets.active
                         next_dimension_sheet = ws1_current
-                        Layer += 1
+                        # Layer += 1
                         new_sheet_name = f'{First_name}{Layer}'
                         ws1_current.name = new_sheet_name
                         num_new_sheets_created += 1
@@ -216,7 +202,7 @@ def main():
         cell_mapping_Dimensionen(sys.argv[1],sys.argv[2])                   
 
         # save after updation 
-        save_and_close_excel(app, wb1, wb2, sys.argv[1])
+        save_and_close_excel(app, wb1, wb2, new_filename)
         print("DONE", flush=True)
         sys.stdout.flush()
     
@@ -229,4 +215,6 @@ def main():
         sys.stderr.flush()
 
 if __name__ == "__main__":
+    folder_path = sys.argv[3]
+    new_filename = sys.argv[4]
     main()
